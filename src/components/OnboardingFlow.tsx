@@ -9,8 +9,9 @@ import ReviewStep from './onboarding/ReviewStep';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const OnboardingFlow: React.FC = () => {
-  const { dispatch } = useFinance();
+  const { saveProfile } = useFinance();
   const [currentStep, setCurrentStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<FinancialProfile>>({
     otherExpenses: {
       car: 0,
@@ -51,15 +52,23 @@ const OnboardingFlow: React.FC = () => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (formData.annualIncome && formData.rent && formData.city) {
-      const monthlyIncome = formData.annualIncome / 12;
-      const completeProfile: FinancialProfile = {
-        ...formData,
-        monthlyIncome,
-      } as FinancialProfile;
-      
-      dispatch({ type: 'SET_PROFILE', payload: completeProfile });
+      setLoading(true);
+      try {
+        const monthlyIncome = formData.annualIncome / 12;
+        const completeProfile: FinancialProfile = {
+          ...formData,
+          monthlyIncome,
+        } as FinancialProfile;
+        
+        await saveProfile(completeProfile);
+      } catch (error) {
+        console.error('Failed to save profile:', error);
+        // Handle error (show toast, etc.)
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -146,9 +155,10 @@ const OnboardingFlow: React.FC = () => {
           ) : (
             <button
               onClick={handleComplete}
-              className="flex items-center px-8 py-3 bg-gradient-to-r from-emerald-600 to-blue-600 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-xl transform hover:scale-105"
+              disabled={loading}
+              className="flex items-center px-8 py-3 bg-gradient-to-r from-emerald-600 to-blue-600 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              Complete Setup
+              {loading ? 'Saving...' : 'Complete Setup'}
             </button>
           )}
         </div>
